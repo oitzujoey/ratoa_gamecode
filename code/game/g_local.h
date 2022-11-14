@@ -691,6 +691,11 @@ struct gclient_s {
 
         int			accuracy[WP_NUM_WEAPONS][2];
 
+	qboolean triggeredEntities[MAX_GENTITIES];
+
+	int dfStartTime;
+	int dfEndTime;
+
 	int damage_history_head;
 	damageRecord_t damage_history[DAMAGE_HISTORY];
 

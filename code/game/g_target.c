@@ -468,3 +468,46 @@ void SP_target_location( gentity_t *self ){
 	G_SetOrigin( self, self->s.origin );
 }
 
+// Defrag timer
+
+void target_start_timer_use( gentity_t *self, gentity_t *other, gentity_t *activator ) {
+	G_Printf("Timer start\n");
+	activator->client->dfStartTime = level.time;
+	activator->client->dfEndTime = 0;
+	self->activator = activator;
+}
+
+void SP_target_start_timer( gentity_t *self ) {
+	self->use = target_start_timer_use;
+}
+
+void parse_time( int time, int *min, int *sec, int *msec ) {
+	int temp;
+	*msec = (time % 1000);
+	temp = (time - *msec) / 1000;
+	*sec = temp % 60;
+	*min = (temp - *sec) / 60;
+}
+
+void target_stop_timer_use( gentity_t *self, gentity_t *other, gentity_t *activator ) {
+	int levelTime;
+	int timeMin, timeSec, timeMsec;
+	char *name;
+
+	// Don't repeat time calculation.
+	if ( activator->client->dfEndTime ) {
+		return;
+	}
+
+	activator->client->dfEndTime = level.time;
+	self->activator = activator;
+	name = activator->client->pers.netname;
+	levelTime = level.time - activator->client->dfStartTime;
+	parse_time(levelTime, &timeMin, &timeSec, &timeMsec);
+	trap_SendServerCommand(-1,
+	                       va("print \"%s ^7finished the level in %u:%.2u:%.3u\n\"", name, timeMin, timeSec, timeMsec));
+}
+
+void SP_target_stop_timer( gentity_t *self ) {
+	self->use = target_stop_timer_use;
+}

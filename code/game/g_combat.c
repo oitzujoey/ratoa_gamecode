@@ -1287,7 +1287,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
                 TossClientCubes( self );
         }
 	// if client is in a nodrop area, don't drop anything (but return CTF flags!)
-	TossClientItems( self );
+	/* TossClientItems( self ); */
 //#endif
 
 	Cmd_Score_f( self );		// show scores
@@ -1364,7 +1364,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 	// don't allow respawn until the death anim is done
 	// g_forcerespawn may force spawning at some later time
-	G_SetRespawntime(self, level.time + 1700);
+	G_SetRespawntime(self, level.time);
 	
 	// remove powerups
 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );
