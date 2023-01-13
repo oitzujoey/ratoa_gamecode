@@ -1130,7 +1130,12 @@ static void PM_WalkMove( void ) {
 		return;
 	}
 
-	PM_StepSlideMove( qfalse );
+	if (pm->ps->stats[STAT_EXTFLAGS] & EXTFL_SLIDING) {
+		PM_StepDownSlideMove( qfalse );
+	}
+	else {
+		PM_StepSlideMove( qfalse );
+	}
 
 	//Com_Printf("velocity2 = %1.1f\n", VectorLength(pm->ps->velocity));
 

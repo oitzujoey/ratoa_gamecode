@@ -753,10 +753,14 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		}
 		break;
 
-	case EV_STEP_4:
-	case EV_STEP_8:
-	case EV_STEP_12:
-	case EV_STEP_16:		// smooth out step up transitions
+	case EV_STEP_UP_4:
+	case EV_STEP_UP_8:
+	case EV_STEP_UP_12:
+	case EV_STEP_UP_16:
+	case EV_STEP_DOWN_4:
+	case EV_STEP_DOWN_8:
+	case EV_STEP_DOWN_12:
+	case EV_STEP_DOWN_16:		// smooth out step transitions
 		DEBUGNAME("EV_STEP");
 	{
 		float	oldStep;
@@ -780,10 +784,14 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		}
 
 		// add this amount
-		step = 4 * (event - EV_STEP_4 + 1 );
+		step = 4 * (event - EV_STEP_0 );
 		cg.stepChange = oldStep + step;
 		if ( cg.stepChange > MAX_STEP_CHANGE ) {
 			cg.stepChange = MAX_STEP_CHANGE;
+		}
+		// Halve the maximum step size so it doesn't look like you're floating above the stairs.
+		if ( cg.stepChange < -MAX_STEP_CHANGE/2.0 ) {
+			cg.stepChange = -MAX_STEP_CHANGE/2.0;
 		}
 		cg.stepTime = cg.time;
 		break;

@@ -340,13 +340,96 @@ void PM_StepSlideMove( qboolean gravity ) {
 		delta = pm->ps->origin[2] - start_o[2];
 		if ( delta > 2 ) {
 			if ( delta < 7 ) {
-				PM_AddEvent( EV_STEP_4 );
+				PM_AddEvent( EV_STEP_UP_4 );
 			} else if ( delta < 11 ) {
-				PM_AddEvent( EV_STEP_8 );
+				PM_AddEvent( EV_STEP_UP_8 );
 			} else if ( delta < 15 ) {
-				PM_AddEvent( EV_STEP_12 );
+				PM_AddEvent( EV_STEP_UP_12 );
 			} else {
-				PM_AddEvent( EV_STEP_16 );
+				PM_AddEvent( EV_STEP_UP_16 );
+			}
+		}
+		if ( pm->debugLevel ) {
+			Com_Printf("%i:stepped\n", c_pmove);
+		}
+	}
+}
+
+/*
+==================
+PM_StepDownSlideMove
+
+==================
+*/
+void PM_StepDownSlideMove( qboolean gravity ) {
+	trace_t trace;
+	vec3_t startOrigin;
+	vec3_t endOrigin;
+	vec3_t up;
+
+	PM_StepSlideMove(gravity);
+
+	// Were we on the ground?
+	if (!pml.groundPlane) {
+		return;
+	}
+
+	VectorCopy(pm->ps->origin, startOrigin);
+
+	VectorCopy(pm->ps->origin, endOrigin);
+	endOrigin[2] -= STEPSIZE;
+
+	pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, endOrigin, pm->ps->clientNum, pm->tracemask);
+	VectorSet(up, 0, 0, 1);
+	// Is there ground to step onto?
+	if (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) {
+		return;
+	}
+	if ( trace.allsolid ) {
+		if ( pm->debugLevel ) {
+			Com_Printf("%i:bend can't step down\n", c_pmove);
+		}
+		return;		// can't step up
+	}
+	VectorCopy(trace.endpos, pm->ps->origin);
+
+	// Clip velocity.
+	if (pm->pmove_ratflags & RAT_SMOOTHSTAIRS) {
+		/*
+		  Only clip double sided when...
+		  Rampjump is enabled.
+		  The player is alive.
+		  Jump is pressed, but not held.
+		  A ramp jump is about to occur.
+		*/
+		if ( (pm->pmove_ratflags & RAT_RAMPJUMP) &&
+		     !(pm->ps->pm_flags & PMF_RESPAWNED) &&
+		     !(pm->cmd.upmove < 10) &&
+		     !(pm->ps->pm_flags & PMF_JUMP_HELD) &&
+		     // I don't really need to check for this, but it should prevent interference with additive jump.
+		     (pm->ps->stats[STAT_JUMPTIME] > 0)) {
+			PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+		}
+		else {
+			PM_OneSidedClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+		}
+	} else {
+		PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+	}
+	{
+		// use the step move
+		float	delta;
+
+		delta = startOrigin[2] - pm->ps->origin[2];
+		if ( delta > 2 ) {
+			if ( delta < 7 ) {
+				PM_AddEvent( EV_STEP_DOWN_4 );
+			} else if ( delta < 11 ) {
+				PM_AddEvent( EV_STEP_DOWN_8 );
+			} else if ( delta < 15 ) {
+				PM_AddEvent( EV_STEP_DOWN_12 );
+			} else {
+				PM_AddEvent( EV_STEP_DOWN_16 );
 			}
 		}
 		if ( pm->debugLevel ) {
