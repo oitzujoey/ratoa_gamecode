@@ -636,6 +636,18 @@ void	G_TouchTriggers( gentity_t *ent ) {
 		}
 
 		memset( &trace, 0, sizeof(trace) );
+		/* VectorSubtract( ent->client->ps.origin, range, mins ); */
+		/* VectorAdd( ent->client->ps.origin, range, maxs ); */
+		if (hit->s.eType == ET_TELEPORT_TRIGGER) {
+			/* Com_Printf("ent->client->ps.origin %f %f %f\n", ent->client->ps.origin[0], ent->client->ps.origin[1], ent->client->ps.origin[2]); */
+			/* Com_Printf("hit->s.origin %f %f %f\n", hit->s.origin[0], hit->s.origin[1], hit->s.origin[2]); */
+			/* Com_Printf("hit->s.origin2 %f %f %f\n", hit->s.origin2[0], hit->s.origin2[1], hit->s.origin2[2]); */
+			vec3_t mins, maxs;
+			VectorSet( mins, -1, -1, -1 );
+			VectorSet( maxs, 1, 1, 1 );
+			trap_Trace(&trace, ent->client->ps.origin, mins, maxs, hit->s.origin, ent->client->ps.clientNum, MASK_ALL);
+			/* Com_Printf("trace.allsolid %d\n", trace.allsolid); */
+		}
 
 		if ( hit->touch ) {
 			hit->touch (hit, ent, &trace);
@@ -1022,7 +1034,7 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 				}
 			}
 			SelectSpawnPoint( ent, ent->client->ps.origin, origin, angles );
-			TeleportPlayer( ent, origin, angles );
+			G_TeleportPlayer( ent, NULL, NULL, origin, angles, qfalse );
 			break;
 
 		case EV_USE_ITEM2:		// medkit

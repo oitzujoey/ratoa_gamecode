@@ -76,14 +76,14 @@ TELEPORTERS
 =================================================================================
 */
 
-void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
+void G_TeleportPlayer( gentity_t *player, trace_t *entranceTrace, vec3_t entranceOrigin, vec3_t origin, vec3_t angles, qboolean silentTeleport ) {
 	gentity_t	*tent;
-	qboolean noAngles;
+	vec3_t viewAngles;
+	vec3_t exitOrigin;
 
-	noAngles = (angles[0] > 999999.0);
 	// use temp events at source and destination to prevent the effect
 	// from getting dropped by a second player event
-	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR && player->client->ps.pm_type != PM_SPECTATOR) {
+	if ( !silentTeleport && player->client->sess.sessionTeam != TEAM_SPECTATOR && player->client->ps.pm_type != PM_SPECTATOR) {
 		tent = G_TempEntity( player->client->ps.origin, EV_PLAYER_TELEPORT_OUT );
 		tent->s.clientNum = player->s.clientNum;
 
@@ -94,35 +94,24 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	// unlink to make sure it can't possibly interfere with G_KillBox
 	trap_UnlinkEntity (player);
 
-	VectorCopy ( origin, player->client->ps.origin );
-	player->client->ps.origin[2] += 1;
+	VectorCopy(angles, viewAngles);
+	VectorCopy(origin, exitOrigin);
+	/* Com_Printf("origin %f %f %f\n", origin[0], origin[1], origin[2]); */
+	/* Com_Printf("playerState->origin %f %f %f\n", player->client->ps.origin[0], player->client->ps.origin[1], player->client->ps.origin[2]); */
+	/* Com_Printf("entranceTrace->fraction: %f\n", entranceTrace->fraction); */
+	/* Com_Printf("entranceTrace->plane.normal: %f %f %f\n", entranceTrace->plane.normal[0], entranceTrace->plane.normal[1], entranceTrace->plane.normal[2]); */
+	/* Com_Printf("entranceOrigin %f %f %f\n", entranceOrigin[0], entranceOrigin[1], entranceOrigin[2]); */
+	if (BG_TeleportPlayer(&player->client->ps, entranceTrace, entranceOrigin, exitOrigin, viewAngles, silentTeleport)) {
+		SetClientViewAngle(player, viewAngles);
+	}
 
-	if (!noAngles) {
-		// spit the player out
-		AngleVectors( angles, player->client->ps.velocity, NULL, NULL );
-		VectorScale( player->client->ps.velocity, 400, player->client->ps.velocity );
-		player->client->ps.pm_time = 160;		// hold time
-		player->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
-
-		// set angles
-		SetClientViewAngle(player, angles);
+	VectorCopy ( exitOrigin, player->client->ps.origin );
+	if (!silentTeleport) {
+		player->client->ps.origin[2] += 1;
 	}
 
 	// toggle the teleport bit so the client knows to not lerp
 	player->client->ps.eFlags ^= EF_TELEPORT_BIT;
-
-	switch (g_movement.integer) {
-	case MOVEMENT_CPM_CPMA:
-	case MOVEMENT_CPM_DEFRAG:
-		break;
-	default:
-		// reset rampjump
-		player->client->ps.stats[STAT_JUMPTIME] = 0;
-	}
-	// Reset crouch slide.
-	player->client->ps.stats[STAT_EXTFLAGS] &= EXTFL_SLIDING;
-	player->client->ps.stats[STAT_SLIDETIMEOUT] = 0;
-
 
 	// kill anything at the destination
 	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR && player->client->ps.pm_type != PM_SPECTATOR ) {
@@ -443,13 +432,13 @@ static void PortalTouch( gentity_t *self, gentity_t *other, trace_t *trace) {
 	// if there is not one, die!
 	if( !destination ) {
 		if( self->pos1[0] || self->pos1[1] || self->pos1[2] ) {
-			TeleportPlayer( other, self->pos1, self->s.angles );
+			G_TeleportPlayer( other, NULL, NULL, self->pos1, self->s.angles, qfalse );
 		}
 		G_Damage( other, other, other, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
 		return;
 	}
 
-	TeleportPlayer( other, destination->s.pos.trBase, destination->s.angles );
+	G_TeleportPlayer( other, NULL, NULL, destination->s.pos.trBase, destination->s.angles, qfalse );
 }
 
 

@@ -1148,7 +1148,7 @@ void G_SetTeleporterDestinations(void);
 //
 // g_misc.c
 //
-void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles );
+void G_TeleportPlayer( gentity_t *player, trace_t *entranceTrace, vec3_t entranceOrigin, vec3_t origin, vec3_t angles, qboolean silentTeleport );
 void DropPortalSource( gentity_t *ent );
 void DropPortalDestination( gentity_t *ent );
 

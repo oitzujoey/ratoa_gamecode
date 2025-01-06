@@ -1002,6 +1002,8 @@ void	BG_AddPredictableEventToPlayerstate( int newEvent, int eventParm, playerSta
 
 void	BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad );
 
+qboolean BG_TeleportPlayer( playerState_t *playerState, trace_t *entranceTrace, vec3_t entranceOrigin, vec3_t exitOrigin, vec3_t exitAngles, qboolean silentTeleport );
+
 void	BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean snap );
 void	BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s, int time, qboolean snap );
 

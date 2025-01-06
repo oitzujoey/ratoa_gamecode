@@ -324,8 +324,7 @@ void trigger_teleporter_touch (gentity_t *self, gentity_t *other, trace_t *trace
                 G_Printf ("Couldn't find teleporter destination\n");
 		return;
 	}
-
-	TeleportPlayer( other, dest->s.origin, dest->s.angles );
+	G_TeleportPlayer( other, trace, self->s.angles, dest->s.origin, dest->s.angles, (self->s.generic1 & 2) ? 1 : 0 );
 }
 
 void G_SetTeleporterDestinations(void) {
@@ -361,16 +360,24 @@ void G_SetTeleporterDestinations(void) {
 			}
 		}
 
+		ent->s.generic1 = 0;
 		if (g_teleporterPrediction.integer && unique_target && unique) {
-			// let the client know about the teleporter destination
-			// to allow it to predict the entire teleportation
+			// let the client know about the teleporter entrance and
+			// destination to allow it to predict the entire teleportation
+
+			vec3_t origin;
+			VectorAdd(ent->r.absmin, ent->r.absmax, origin);
+			VectorScale(origin, 0.5, origin);
+			VectorCopy(origin, ent->s.origin);
+			origin[2] = ent->r.mins[2] - MINS_Z + 1;
+			VectorCopy(origin, ent->s.angles);
+
 			VectorCopy(unique_target->s.origin, ent->s.origin2);
 			VectorCopy(unique_target->s.angles, ent->s.angles2);
-			ent->s.generic1 = 1;
-		} else {
-			ent->s.generic1 = 0;
-		}
 
+			ent->s.generic1 |= 1;
+		}
+		ent->s.generic1 |= (ent->spawnflags & 2) ? 2 : 0;
 	}
 }
 

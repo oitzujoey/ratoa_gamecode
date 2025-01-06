@@ -508,6 +508,48 @@ qboolean CG_MissileTouchedPortal(const vec3_t start, const vec3_t end) {
 
 /*
 =========================
+CG_TeleportPlayerPrediction
+
+Predict push triggers and items
+=========================
+*/
+void CG_TeleportPlayerPrediction(  centity_t *cent, trace_t *entranceTrace, qboolean silentTeleport ) {
+	vec3_t viewAngles;
+	vec3_t exitOrigin;
+	vec3_t entranceOrigin;
+	qboolean anglesExist;
+	entityState_t *ent = &cent->currentState;
+
+	// only predict 1 teleport until we get confirmation from the server
+	cg.predictedTeleports++;
+
+	VectorCopy(ent->angles2, viewAngles);
+	VectorCopy(ent->origin2, exitOrigin);
+
+	// Oh the hackiness.
+	VectorCopy(ent->angles, entranceOrigin);
+	anglesExist = BG_TeleportPlayer(&cg.predictedPlayerState, entranceTrace, entranceOrigin, exitOrigin, viewAngles, silentTeleport);
+
+	// teleporter has unique destination
+	VectorCopy( exitOrigin, cg.predictedPlayerState.origin );
+
+	if (!silentTeleport) {
+		cg.predictedPlayerState.origin[2] += 1;
+	}
+
+	if (anglesExist) {
+		int i;
+		// set the delta angle
+		for (i=0 ; i<3 ; i++) {
+			int cmdAngle = ANGLE2SHORT(viewAngles[i]);
+			cg.predictedPlayerState.delta_angles[i] = cmdAngle - cg_pmove.cmd.angles[i];
+		}
+		VectorCopy (viewAngles, cg.predictedPlayerState.viewangles );
+	}
+}
+
+/*
+=========================
 CG_TouchTriggerPrediction
 
 Predict push triggers and items
@@ -558,46 +600,21 @@ static void CG_TouchTriggerPrediction( void ) {
 		}
 
 		if ( ent->eType == ET_TELEPORT_TRIGGER ) {
-			if (cg_predictTeleport.integer && ent->generic1 && !cg.predictedTeleports) {
-				qboolean noAngles;
-
-				// only predict 1 teleport until we get confirmation from the server
-				cg.predictedTeleports++;
-						
-				// teleporter has unique destination
-				VectorCopy( ent->origin2, cg.predictedPlayerState.origin );
-
-				cg.predictedPlayerState.origin[2] += 1;
-				noAngles = (ent->angles2[0] > 999999.0);
-				if (!noAngles) {
-					int			i;
-					// spit the player out
-					AngleVectors( ent->angles2, cg.predictedPlayerState.velocity, NULL, NULL );
-					VectorScale( cg.predictedPlayerState.velocity, 400, cg.predictedPlayerState.velocity );
-					cg.predictedPlayerState.pm_time = 160;
-					cg.predictedPlayerState.pm_flags |= PMF_TIME_KNOCKBACK;
-
-					switch (cgs.movement) {
-					case MOVEMENT_CPM_CPMA:
-					case MOVEMENT_CPM_DEFRAG:
-						break;
-					default:
-						// reset rampjump
-						cg.predictedPlayerState.stats[STAT_JUMPTIME] = 0;
-					}
-					// Reset crouch slide.
-					cg.predictedPlayerState.stats[STAT_EXTFLAGS] &= EXTFL_SLIDING;
-					cg.predictedPlayerState.stats[STAT_SLIDETIMEOUT] = 0;
-
-					// set the delta angle
-					for (i=0 ; i<3 ; i++) {
-						int		cmdAngle;
-
-						cmdAngle = ANGLE2SHORT(ent->angles2[i]);
-						cg.predictedPlayerState.delta_angles[i] = cmdAngle - cg_pmove.cmd.angles[i];
-					}
-					VectorCopy (ent->angles2, cg.predictedPlayerState.viewangles );
-				}
+			if (cg_predictTeleport.integer && (ent->generic1 & 1) && !cg.predictedTeleports) {
+				/* VectorSubtract( ent->client->ps.origin, range, mins ); */
+				/* VectorAdd( ent->client->ps.origin, range, maxs ); */
+				/* Com_Printf("ent origin: %f %f %f\n", ent->origin[0], ent->origin[1], ent->origin[2]); */
+				/* Com_Printf("ent origin 2: %f %f %f\n", ent->origin2[0], ent->origin2[1], ent->origin2[2]); */
+				/* Com_Printf("ent angles: %f %f %f\n", ent->angles[0], ent->angles[1], ent->angles[2]); */
+				/* Com_Printf("ent angles 2: %f %f %f\n", ent->angles2[0], ent->angles2[1], ent->angles2[2]); */
+				/* Com_Printf("client: %f %f %f\n", cg.predictedPlayerState.origin[0], cg.predictedPlayerState.origin[1], cg.predictedPlayerState.origin[2]); */
+				/* Com_Printf("cg_pmove.mins %f %f %f\n", cg_pmove.mins[0], cg_pmove.mins[1], cg_pmove.mins[2]); */
+				/* Com_Printf("cg_pmove.maxs %f %f %f\n", cg_pmove.maxs[0], cg_pmove.maxs[1], cg_pmove.maxs[2]); */
+				CG_Trace(&trace, cg.predictedPlayerState.origin, cg_pmove.mins, cg_pmove.maxs, ent->origin, cg.predictedPlayerState.clientNum, MASK_ALL);
+				/* Com_Printf("client: %f %f %f\n", cg.predictedPlayerState.origin[0], cg.predictedPlayerState.origin[1], cg.predictedPlayerState.origin[2]); */
+				/* Com_Printf("trace.fraction: %f\n", trace.fraction); */
+				/* Com_Printf("trace.plane.normal: %f %f %f\n", trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2]); */
+				CG_TeleportPlayerPrediction(cent, &trace, (ent->generic1 & 2) ? 1 : 0);
 			} else {
 				cg.hyperspace = qtrue;
 			}
