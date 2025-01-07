@@ -580,6 +580,7 @@ static void CG_TouchTriggerPrediction( void ) {
 					switch (cgs.movement) {
 					case MOVEMENT_CPM_CPMA:
 					case MOVEMENT_CPM_DEFRAG:
+					case MOVEMENT_QL:
 						break;
 					default:
 						// reset rampjump
